@@ -2,13 +2,18 @@ import requests
 import time
 import schedule
 import logging
+import json
 from dotenv import load_dotenv
 import os
 
-# Lade Umgebungsvariablen
+# Load environment variables
 load_dotenv()
 
-# Konfiguriere Logging
+# Load configuration file
+with open("config.json", "r") as config_file:
+    config = json.load(config_file)
+
+# Configure logging
 log_file = "ip_monitor.log"
 logging.basicConfig(
     filename=log_file,
@@ -56,10 +61,17 @@ class IPMonitor:
 
     def send_discord_notification(self, new_ip):
         embed = {
-            "title": "IP-Adresse geändert",
-            "description": f"Die neue IP-Adresse ist `{new_ip}`",
-            "color": 16711680
+            "title": config["embed_title"],
+            "description": config["embed_description_template"].format(ip=new_ip),
+            "color": config["embed_color"],
+            "footer": {
+                "text": config["embed_footer"],
+                "icon_url": config.get("embed_footer_icon_url", "")
+            }
         }
+        if config.get("embed_image_url"):
+            embed["image"] = {"url": config["embed_image_url"]}
+
         data = {"embeds": [embed]}
         try:
             response = requests.post(self.discord_webhook_url, json=data)
