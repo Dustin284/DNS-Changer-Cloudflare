@@ -1,5 +1,6 @@
 {
     "embed_title": "IP Address Changed",
+    "embed_author": "Cloudflare DNS Updater",
     "embed_description_template": "The new IP address is `{ip}`",
     "embed_color": 16711680,
     "embed_image_url": "https://via.placeholder.com/150",

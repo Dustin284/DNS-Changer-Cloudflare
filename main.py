@@ -69,6 +69,12 @@ class IPMonitor:
                 "icon_url": config.get("embed_footer_icon_url", "")
             }
         }
+
+        # Add author if specified in the config
+        if "embed_author" in config:
+            embed["author"] = {"name": config["embed_author"]}
+
+        # Add image if specified in the config
         if config.get("embed_image_url"):
             embed["image"] = {"url": config["embed_image_url"]}
 
