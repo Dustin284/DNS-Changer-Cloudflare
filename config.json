@@ -1,0 +1,8 @@
+{
+    "embed_title": "IP Address Changed",
+    "embed_description_template": "The new IP address is `{ip}`",
+    "embed_color": 16711680,
+    "embed_image_url": "https://via.placeholder.com/150",
+    "embed_footer": "IP Monitor Notification",
+    "embed_footer_icon_url": "https://via.placeholder.com/50"
+}
