@@ -13,18 +13,35 @@ load_dotenv()
 with open("config.json", "r") as config_file:
     config = json.load(config_file)
 
+class DiscordLogger(logging.Handler):
+    def __init__(self, webhook_url):
+        super().__init__()
+        self.webhook_url = webhook_url
+
+    def emit(self, record):
+        log_entry = self.format(record)
+        embed = {
+            "title": "IP Monitor Log",
+            "description": log_entry,
+            "color": 0x3498db  # Blue color
+        }
+        data = {"embeds": [embed]}
+        try:
+            requests.post(self.webhook_url, json=data)
+        except requests.RequestException as e:
+            print(f"Failed to send log to Discord: {e}")
+
 # Configure logging
-log_file = "ip_monitor.log"
-logging.basicConfig(
-    filename=log_file,
-    filemode="a",
-    level=logging.INFO,
-    format="%(asctime)s - %(levelname)s - %(message)s"
-)
+discord_webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+discord_handler = DiscordLogger(discord_webhook_url)
+formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
+discord_handler.setFormatter(formatter)
+
+logging.basicConfig(level=logging.INFO, handlers=[discord_handler])
 
 class IPMonitor:
     def __init__(self):
-        self.discord_webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
+        self.discord_webhook_url = discord_webhook_url
         self.cloudflare_api_token = os.getenv("CLOUDFLARE_API_TOKEN")
         self.cloudflare_zone_id = os.getenv("CLOUDFLARE_ZONE_ID")
         self.dns_record_id = os.getenv("DNS_RECORD_ID")
