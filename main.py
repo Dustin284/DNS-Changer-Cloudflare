@@ -127,7 +127,7 @@ if __name__ == "__main__":
     try:
         monitor = IPMonitor()
         logging.info("Starting IP address monitoring...")
-        schedule.every(5).minutes.do(monitor.check_and_update_ip)
+        schedule.every(60).minutes.do(monitor.check_and_update_ip)
 
         while True:
             schedule.run_pending()
