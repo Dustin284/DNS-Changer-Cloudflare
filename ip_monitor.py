@@ -2,16 +2,28 @@ import requests
 import time
 import schedule
 import logging
-import json
 from dotenv import load_dotenv
 import os
 
 # Load environment variables
 load_dotenv()
 
-# Load configuration file
-with open("config.json", "r") as config_file:
-    config = json.load(config_file)
+# Configuration Variables
+DISCORD_WEBHOOK_URL = os.getenv("DISCORD_WEBHOOK_URL")
+CLOUDFLARE_API_TOKEN = os.getenv("CLOUDFLARE_API_TOKEN")
+CLOUDFLARE_ZONE_ID = os.getenv("CLOUDFLARE_ZONE_ID")
+DNS_RECORD_ID = os.getenv("DNS_RECORD_ID")
+DNS_RECORD_NAME = os.getenv("DNS_RECORD_NAME")
+IP_CHECK_URL = "https://api64.ipify.org"
+
+# Embed Configuration for Discord
+EMBED_TITLE = "IP Monitor Alert"
+EMBED_DESCRIPTION_TEMPLATE = "The public IP has been updated to: {ip}"
+EMBED_COLOR_INFO = 0x808080  # Grey
+EMBED_COLOR_SUCCESS = 0x00FF00  # Green
+EMBED_COLOR_ERROR = 0xFF0000  # Red
+EMBED_FOOTER = "IP Monitor System"
+EMBED_FOOTER_ICON_URL = ""  # Optional: Add a URL to an icon
 
 class DiscordLogger(logging.Handler):
     def __init__(self, webhook_url):
@@ -20,10 +32,16 @@ class DiscordLogger(logging.Handler):
 
     def emit(self, record):
         log_entry = self.format(record)
+        color = (
+            EMBED_COLOR_ERROR if record.levelname == "ERROR" else
+            EMBED_COLOR_SUCCESS if record.levelname == "INFO" else
+            EMBED_COLOR_INFO
+        )
         embed = {
-            "title": "IP Monitor Log",
+            "title": EMBED_TITLE,
             "description": log_entry,
-            "color": 0x3498db  # Blue color
+            "color": color,
+            "footer": {"text": EMBED_FOOTER, "icon_url": EMBED_FOOTER_ICON_URL}
         }
         data = {"embeds": [embed]}
         try:
@@ -31,23 +49,20 @@ class DiscordLogger(logging.Handler):
         except requests.RequestException as e:
             print(f"Failed to send log to Discord: {e}")
 
-# Configure logging
-discord_webhook_url = os.getenv("DISCORD_WEBHOOK_URL")
-discord_handler = DiscordLogger(discord_webhook_url)
+# Configure Logging
+discord_handler = DiscordLogger(DISCORD_WEBHOOK_URL)
 formatter = logging.Formatter("%(asctime)s - %(levelname)s - %(message)s")
 discord_handler.setFormatter(formatter)
-
 logging.basicConfig(level=logging.INFO, handlers=[discord_handler])
 
 class IPMonitor:
     def __init__(self):
-        self.discord_webhook_url = discord_webhook_url
-        self.cloudflare_api_token = os.getenv("CLOUDFLARE_API_TOKEN")
-        self.cloudflare_zone_id = os.getenv("CLOUDFLARE_ZONE_ID")
-        self.dns_record_id = os.getenv("DNS_RECORD_ID")
-        self.dns_record_name = os.getenv("DNS_RECORD_NAME")
-        self.current_ip = None
-        self.ip_check_url = "https://api64.ipify.org"
+        self.discord_webhook_url = DISCORD_WEBHOOK_URL
+        self.cloudflare_api_token = CLOUDFLARE_API_TOKEN
+        self.cloudflare_zone_id = CLOUDFLARE_ZONE_ID
+        self.dns_record_id = DNS_RECORD_ID
+        self.dns_record_name = DNS_RECORD_NAME
+        self.ip_check_url = IP_CHECK_URL
         logging.info("IPMonitor initialized.")
 
     def get_public_ip(self):
@@ -78,23 +93,11 @@ class IPMonitor:
 
     def send_discord_notification(self, new_ip):
         embed = {
-            "title": config["embed_title"],
-            "description": config["embed_description_template"].format(ip=new_ip),
-            "color": config["embed_color"],
-            "footer": {
-                "text": config["embed_footer"],
-                "icon_url": config.get("embed_footer_icon_url", "")
-            }
+            "title": EMBED_TITLE,
+            "description": EMBED_DESCRIPTION_TEMPLATE.format(ip=new_ip),
+            "color": EMBED_COLOR_SUCCESS,
+            "footer": {"text": EMBED_FOOTER, "icon_url": EMBED_FOOTER_ICON_URL}
         }
-
-        # Add author if specified in the config
-        if "embed_author" in config:
-            embed["author"] = {"name": config["embed_author"]}
-
-        # Add image if specified in the config
-        if config.get("embed_image_url"):
-            embed["image"] = {"url": config["embed_image_url"]}
-
         data = {"embeds": [embed]}
         try:
             response = requests.post(self.discord_webhook_url, json=data)
